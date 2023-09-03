@@ -1,3 +1,4 @@
+pub mod event;
 mod oauth;
 pub mod verses;
 
@@ -31,6 +32,7 @@ async fn main() -> anyhow::Result<()> {
         scopes: scopes!("user-read-playback-state"),
         ..Default::default()
     };
+
     let config = Config {
         token_cached: true,
         cache_path: home::home_dir()
