@@ -2,7 +2,10 @@ use std::{sync::Arc, vec};
 
 use rspotify::sync::Mutex;
 
-use crate::event::{StatusEvent, TrackMetadata};
+use crate::{
+    event::{StatusEvent, TrackMetadata},
+    verses::LyricLine,
+};
 
 use super::Lyrics;
 
@@ -52,6 +55,9 @@ impl VersesTui {
                 }
                 StatusEvent::SwitchLyricLine { new_line } => {
                     let mut tracker = tracker.lock().await.unwrap();
+                    if new_line == -1 {
+                        continue;
+                    }
                     tracker.current_line = new_line as isize;
 
                     // TODO: debug, remove me
@@ -61,7 +67,10 @@ impl VersesTui {
                             .lyrics
                             .lines
                             .get(tracker.current_line as usize)
-                            .unwrap()
+                            .unwrap_or(&LyricLine {
+                                start_time_ms: 0,
+                                words: String::new()
+                            })
                             .words
                     )
                 }

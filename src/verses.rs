@@ -46,7 +46,7 @@ impl Verses {
     async fn run_dispatcher(&self, events_tx: flume::Sender<StatusEvent>) -> anyhow::Result<()> {
         let mut cached_id: String = String::new();
         let mut cached_lyrics: Option<Lyrics> = None;
-        let mut last_lyrics_line: usize = 0;
+        let mut current_lyrics_line: isize = 0;
 
         // Fetching status every second
         while let Ok(status) = self.currently_playing().await {
@@ -66,28 +66,32 @@ impl Verses {
                             .progress
                             .map(|it| it.to_std().unwrap())
                             .unwrap_or(Duration::ZERO);
-                        let progress_ms = progress.as_millis();
-                        let next_lyrics_line = lyrics.lines.get(last_lyrics_line + 1);
-                        if let Some(next_lyrics_line) = next_lyrics_line {
-                            // we havent reached last line yet, so we can continue
-                            if progress_ms as u32 > next_lyrics_line.start_time_ms {
-                                // we have surpassed next lyric line begin time, send an update event
-                                last_lyrics_line += 1;
+                        let progress_ms = progress.as_millis() as u32;
 
-                                // TODO: handle when player goes back
-                                events_tx
-                                    .send_async(StatusEvent::SwitchLyricLine {
-                                        new_line: last_lyrics_line,
-                                    })
-                                    .await?;
-                            }
+                        // finding floor index
+                        let lyrics_line_index: isize = lyrics.lines.len() as isize
+                            - 1
+                            - lyrics
+                                .lines
+                                .iter()
+                                .rev()
+                                .position(|it| it.start_time_ms <= progress_ms)
+                                .unwrap_or(lyrics.lines.len())
+                                as isize;
+                        if current_lyrics_line != lyrics_line_index {
+                            events_tx
+                                .send_async(StatusEvent::SwitchLyricLine {
+                                    new_line: lyrics_line_index as isize,
+                                })
+                                .await?;
+                            current_lyrics_line = lyrics_line_index as isize;
                         }
                     }
                     tokio::time::sleep(Duration::from_secs(1)).await;
                     continue;
                 } else {
                     cached_id = id.clone();
-                    last_lyrics_line = 0; // resetting lyrics in case song was switched
+                    current_lyrics_line = -1; // resetting lyrics in case song was switched
                 }
 
                 let track = self.spotify.track(TrackId::from_id(&id)?, None).await?;

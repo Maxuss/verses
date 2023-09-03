@@ -12,7 +12,7 @@ pub enum StatusEvent {
         metadata: TrackMetadata,
     },
     SwitchLyricLine {
-        new_line: usize,
+        new_line: isize,
     },
 }
 
