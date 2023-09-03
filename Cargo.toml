@@ -7,6 +7,9 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.75"
+home = "0.5.5"
 reqwest = { version = "0.11.20", features = ["rustls"] }
-rspotify = { version = "0.12.0", features = ["reqwest-rustls-tls", "cli"] }
-tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
+rspotify = { version = "0.12.0", features = ["reqwest-rustls-tls"] }
+serde = { version = "1.0.188", features = ["derive"] }
+tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread", "fs"] }
+webbrowser = "0.8.11"

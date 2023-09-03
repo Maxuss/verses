@@ -1,69 +1,72 @@
-use std::{str::FromStr, time::Duration};
+mod oauth;
+pub mod verses;
 
-use reqwest::{
-    header::{HeaderMap, HeaderName, HeaderValue, USER_AGENT},
-    Client, Request,
+use std::path::PathBuf;
+
+use rspotify::{
+    model::{CurrentPlaybackContext, CurrentlyPlayingContext},
+    prelude::*,
+    scopes, AuthCodePkceSpotify, Config, Credentials, OAuth,
 };
-use rspotify::{prelude::*, scopes, AuthCodePkceSpotify, Credentials, OAuth, Token};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-};
+use verses::Verses;
+
+use crate::oauth::server_oneshot;
+
+async fn prepare_dirs() -> anyhow::Result<()> {
+    let cache_dir = home::home_dir().unwrap().join(".cache").join("verses");
+    let config_dir = home::home_dir().unwrap().join(".config").join("verses");
+    tokio::fs::create_dir_all(config_dir).await?;
+    tokio::fs::create_dir_all(cache_dir).await?;
+    Ok(())
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Create necessary directories first
+    prepare_dirs().await?;
+
     let creds = Credentials::new_pkce("b165ecf5a7f24fd095d55e366a93c8ae");
     let oauth = OAuth {
         redirect_uri: "http://localhost:8888/callback".to_string(),
         scopes: scopes!("user-read-playback-state"),
         ..Default::default()
     };
-    let mut spotify = AuthCodePkceSpotify::new(creds.clone(), oauth.clone());
+    let config = Config {
+        token_cached: true,
+        cache_path: home::home_dir()
+            .unwrap()
+            .join(".cache")
+            .join("verses")
+            .join("spotify.json"),
+        ..Default::default()
+    };
+    let mut spotify = AuthCodePkceSpotify::with_config(creds.clone(), oauth.clone(), config);
+    if let Ok(Some(tk)) = spotify.read_token_cache(true).await {
+        *spotify.get_token().lock().await.unwrap() = Some(tk);
+        spotify.refresh_token().await?;
+    } else {
+        let url = spotify.get_authorize_url(None)?;
 
-    let url = spotify.get_authorize_url(None)?;
+        match webbrowser::open(&url) {
+            Ok(_) => {
+                println!("Opened a spotify authentication window in browser.")
+            }
+            Err(err) => {
+                eprintln!("Failed to open a web browser! {err}");
+                return Ok(());
+            }
+        }
 
-    println!("{url}");
-    let (code, oauth_state) = server_oneshot().await?;
-    if oauth.state != oauth_state {
-        println!("Failed to login! Something wrong with OAuth?");
-        return Ok(());
+        let (code, oauth_state) = server_oneshot().await?;
+        if oauth.state != oauth_state {
+            println!("Failed to login! Something wrong with OAuth state?");
+            return Ok(());
+        }
+        spotify.request_token(&code).await?;
     }
-    spotify.request_token(&code).await?;
 
-    let history = spotify.current_playback(None, None::<Vec<_>>).await?;
-
-    println!("Response: {history:#?}");
+    let verses = Verses::new(spotify);
+    verses.run().await?;
 
     Ok(())
-}
-
-async fn server_oneshot() -> anyhow::Result<(String, String)> {
-    let tcp_listener = TcpListener::bind("127.0.0.1:8888").await?;
-
-    // Only accept a single connection
-    let (mut client, _) = tcp_listener.accept().await?;
-
-    // 327 bytes are:
-    // GET /callback?code=   :: 19 bytes
-    // <Auth code>           :: 276 bytes
-    // &state=               :: 7 bytes
-    // <OAuth state>         :: 16 bytes
-    let mut necessary_info = [0u8; 318];
-
-    client.read_exact(&mut necessary_info).await?;
-    client
-        .write_all(
-            br#"HTTP/1.1 200 OK
-content-length: 39
-content-type: text/plain
-
-Success! You may now close this window."#,
-        )
-        .await?;
-
-    let data = &String::from_utf8(necessary_info.to_vec()).unwrap()[19..];
-    let code = &data[..276];
-    let oauth_state = &data[283..];
-
-    Ok((code.to_owned(), oauth_state.to_owned()))
 }

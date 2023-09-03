@@ -964,7 +964,6 @@ dependencies = [
  "sha2",
  "thiserror",
  "url",
- "webbrowser",
 ]
 
 [[package]]
@@ -1467,9 +1466,12 @@ name = "verses"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "home",
  "reqwest",
  "rspotify",
+ "serde",
  "tokio",
+ "webbrowser",
 ]
 
 [[package]]
