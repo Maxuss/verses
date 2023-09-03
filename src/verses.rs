@@ -1,12 +1,11 @@
 pub mod tui;
 
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use reqwest::{Client, StatusCode};
 use rspotify::{
     model::{CurrentlyPlayingContext, FullTrack, TrackId},
     prelude::*,
-    sync::Mutex,
     AuthCodePkceSpotify,
 };
 use serde::Deserialize;

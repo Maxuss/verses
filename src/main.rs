@@ -2,13 +2,7 @@ pub mod event;
 mod oauth;
 pub mod verses;
 
-use std::path::PathBuf;
-
-use rspotify::{
-    model::{CurrentPlaybackContext, CurrentlyPlayingContext},
-    prelude::*,
-    scopes, AuthCodePkceSpotify, Config, Credentials, OAuth,
-};
+use rspotify::{prelude::*, scopes, AuthCodePkceSpotify, Config, Credentials, OAuth};
 use verses::Verses;
 
 use crate::oauth::server_oneshot;
