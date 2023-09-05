@@ -76,13 +76,15 @@ impl<'a> TerminalUiBackend<'a> {
 
         let tracker = tracker.lock().unwrap();
 
+        let lyrics_top_text = maybe_romanize_str(
+            &tracker.track_data.track_name,
+            &tracker.lyrics.language,
+            &cfg,
+        );
         let lyrics_block = Block::default()
             .fg(cfg.theme.borders.lyrics_border_color.0)
             .title(Line::from(
-                tracker
-                    .track_data
-                    .track_name
-                    .fg(cfg.theme.borders.lyrics_border_text_color.0),
+                lyrics_top_text.fg(cfg.theme.borders.lyrics_border_text_color.0),
             ))
             .borders(Borders::ALL)
             .border_type(cfg.theme.borders.lyrics_border_style.0)
@@ -288,4 +290,20 @@ fn restore_terminal(terminal: &mut Term) -> anyhow::Result<()> {
     disable_raw_mode()?;
     crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
     terminal.show_cursor().map_err(anyhow::Error::from)
+}
+
+fn maybe_romanize_str(name: &str, language: &str, cfg: &Arc<VersesConfig>) -> String {
+    if cfg.general.romanize_unicode
+        && language != "en"
+        && !cfg.general.romanize_exclude.contains(&language.to_owned())
+    {
+        let romanized = deunicode(name);
+        if romanized == name {
+            return romanized;
+        } else {
+            return format!("{name} ({romanized})");
+        }
+    } else {
+        return name.to_owned();
+    }
 }
