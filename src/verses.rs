@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use reqwest::{Client, StatusCode};
 use rspotify::{
-    model::{CurrentlyPlayingContext, FullTrack, TrackId},
+    model::{CurrentlyPlayingContext, FullArtist, FullTrack, TrackId},
     prelude::*,
     AuthCodePkceSpotify,
 };
@@ -109,7 +109,9 @@ impl Verses {
                     .await?;
 
                 let track = self.spotify.track(TrackId::from_id(&id)?, None).await?;
-                let metadata = extract_track_meta(track);
+                let main_artist = track.artists.get(0).unwrap();
+                let main_artist = self.spotify.artist(main_artist.id.clone().unwrap()).await?;
+                let metadata = extract_track_meta(track, main_artist);
 
                 let lyrics = self.fetch_lyrics(&id).await?;
                 if let Some(new_lyrics) = lyrics {
@@ -161,7 +163,7 @@ impl Verses {
     }
 }
 
-fn extract_track_meta(track: FullTrack) -> TrackMetadata {
+fn extract_track_meta(track: FullTrack, artist: FullArtist) -> TrackMetadata {
     TrackMetadata {
         track_name: track.name,
         track_author: track
@@ -172,6 +174,8 @@ fn extract_track_meta(track: FullTrack) -> TrackMetadata {
             .join(", "),
         track_album: track.album.name,
         track_duration: track.duration.to_std().unwrap(),
+        artist_genres: artist.genres,
+        popularity: track.popularity,
     }
 }
 

@@ -100,6 +100,11 @@ fn handle_ui(tracker: &SyncTracker, f: &mut Frame<CrosstermBackend<Stdout>>) {
     let info_part = Paragraph::new(vec![
         Line::from(format!("Author: {}", tracker.track_data.track_author)),
         Line::from(format!("Album: {}", tracker.track_data.track_album)),
+        Line::from(format!(
+            "Genres: {}",
+            tracker.track_data.artist_genres.join(", ")
+        )),
+        Line::from(format!("Popularity: {}%", tracker.track_data.popularity)),
     ])
     .style(Style::default().gray())
     .alignment(Alignment::Left)

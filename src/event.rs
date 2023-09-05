@@ -25,4 +25,6 @@ pub struct TrackMetadata {
     pub track_author: String,
     pub track_album: String,
     pub track_duration: Duration,
+    pub artist_genres: Vec<String>,
+    pub popularity: u32,
 }
