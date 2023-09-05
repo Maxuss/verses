@@ -86,7 +86,7 @@ pub struct DisplayConfig {
 
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct ThemeColor(Color);
+pub struct ThemeColor(pub Color);
 
 impl<'de> Deserialize<'de> for ThemeColor {
     fn deserialize<D>(de: D) -> Result<Self, D::Error>
@@ -128,7 +128,7 @@ impl<'v> Visitor<'v> for ColorVisitor {
 
 #[derive(Debug, Clone)]
 #[repr(transparent)]
-pub struct BorderStyle(BorderType);
+pub struct BorderStyle(pub BorderType);
 
 impl<'de> Deserialize<'de> for BorderStyle {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>

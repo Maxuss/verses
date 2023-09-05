@@ -1,6 +1,13 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    collections::hash_map::DefaultHasher,
+    hash::{Hash, Hasher},
+    sync::{Arc, Mutex},
+};
 
-use crate::event::{StatusEvent, TrackMetadata};
+use crate::{
+    config::VersesConfig,
+    event::{StatusEvent, TrackMetadata},
+};
 
 use super::Lyrics;
 
@@ -14,6 +21,25 @@ pub struct LyricsTracker {
     pub track_data: TrackMetadata,
 }
 
+impl LyricsTracker {
+    pub fn identity_hash(&self) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        self.lyrics.language.hash(&mut hasher);
+        self.lyrics.lines.iter().for_each(|it| {
+            it.words.hash(&mut hasher);
+            it.start_time_ms.hash(&mut hasher)
+        });
+        (self.lyrics.sync_type as u8).hash(&mut hasher);
+        self.track_data.popularity.hash(&mut hasher);
+        self.track_data.track_artists.hash(&mut hasher);
+        self.track_data.track_album.hash(&mut hasher);
+        self.track_data.track_artists.hash(&mut hasher);
+        self.track_data.track_name.hash(&mut hasher);
+
+        hasher.finish()
+    }
+}
+
 pub struct VersesHandler<T: VersesBackend> {
     tracker: SyncTracker,
     backend: T,
@@ -21,7 +47,11 @@ pub struct VersesHandler<T: VersesBackend> {
 
 #[async_trait::async_trait]
 pub trait VersesBackend {
-    async fn run_backend(&self, tracker: SyncTracker) -> anyhow::Result<()>;
+    async fn run_backend(
+        &mut self,
+        tracker: SyncTracker,
+        config: Arc<VersesConfig>,
+    ) -> anyhow::Result<()>;
 }
 
 impl<T: VersesBackend + Send + Sync + 'static> VersesHandler<T> {
@@ -32,13 +62,17 @@ impl<T: VersesBackend + Send + Sync + 'static> VersesHandler<T> {
         }
     }
 
-    pub async fn run(self, event_rx: flume::Receiver<StatusEvent>) -> anyhow::Result<()> {
+    pub async fn run(
+        mut self,
+        event_rx: flume::Receiver<StatusEvent>,
+        config: Arc<VersesConfig>,
+    ) -> anyhow::Result<()> {
         let tracker_w = self.tracker.clone();
         let tracker_r = self.tracker;
         let event_handler =
             tokio::task::spawn(async move { Self::run_event_handler(tracker_w, event_rx).await });
         let backend_handler =
-            tokio::task::spawn(async move { self.backend.run_backend(tracker_r).await });
+            tokio::task::spawn(async move { self.backend.run_backend(tracker_r, config).await });
         let (events, backend) = tokio::join!(event_handler, backend_handler);
         events??;
         backend??;

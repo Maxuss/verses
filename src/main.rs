@@ -3,7 +3,10 @@ pub mod event;
 mod oauth;
 pub mod verses;
 
-use std::io::{stdin, stdout, BufRead, Write};
+use std::{
+    io::{stdin, stdout, BufRead, Write},
+    sync::Arc,
+};
 
 use config::VersesConfig;
 
@@ -66,9 +69,9 @@ async fn main() -> anyhow::Result<()> {
     prepare_dirs().await?;
 
     // Parsing config
-    let config = parse_config().await?;
+    let verses_config = Arc::new(parse_config().await?);
 
-    let creds = Credentials::new_pkce(&config.api.spotify_client_id);
+    let creds = Credentials::new_pkce(&verses_config.api.spotify_client_id);
     let oauth = OAuth {
         redirect_uri: "http://localhost:8888/callback".to_string(),
         scopes: scopes!("user-read-playback-state"),
@@ -109,7 +112,7 @@ async fn main() -> anyhow::Result<()> {
         spotify.request_token(&code).await?;
     }
 
-    let verses = Verses::new(spotify);
+    let verses = Verses::new(spotify, verses_config);
     verses.run().await?;
 
     Ok(())

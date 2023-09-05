@@ -32,19 +32,19 @@ name_format = "• Name: {{ name }}"
 show_artists = true
 # How to format track artists
 # Available templates: `artists`
-artists_format = "• Artists: {{ artists }}"
+artists_format = "• Artists: {{ join artists }}"
 
 # Whether to show track album
 show_album = true
 # How to format track album
 # Available templates: `album`
-album_format = "• Album: {{ artists }}"
+album_format = "• Album: {{ album }}"
 
 # Whether to show track genres
 show_genres = true
 # How to format track genres
 # Available templates: `genres`
-genres_format = "• Genres: {{ genres }}"
+genres_format = "• Genres: {{ join genres }}"
 
 # Whether to show spotify track popularity
 show_popularity = true

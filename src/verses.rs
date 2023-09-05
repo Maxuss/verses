@@ -1,7 +1,7 @@
 pub mod handler;
 pub mod tui_backend;
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use reqwest::{Client, StatusCode};
 use rspotify::{
@@ -12,6 +12,7 @@ use rspotify::{
 use serde::Deserialize;
 
 use crate::{
+    config::VersesConfig,
     event::{StatusEvent, TrackMetadata},
     verses::handler::VersesHandler,
 };
@@ -22,25 +23,28 @@ use self::tui_backend::TerminalUiBackend;
 pub struct Verses {
     spotify: AuthCodePkceSpotify,
     client: reqwest::Client,
+    config: Arc<VersesConfig>,
 }
 
 impl Verses {
-    pub fn new(spotify: AuthCodePkceSpotify) -> Self {
+    pub fn new(spotify: AuthCodePkceSpotify, config: Arc<VersesConfig>) -> Self {
         let client = Client::new();
-        Self { spotify, client }
+        Self {
+            spotify,
+            client,
+            config,
+        }
     }
 
     pub async fn run(self) -> anyhow::Result<()> {
         let (events_tx, events_rx) = flume::bounded::<StatusEvent>(4);
 
-        let tui = VersesHandler::new(TerminalUiBackend);
+        // TODO: other backend choices?
+        let tui = VersesHandler::new(TerminalUiBackend::new());
 
-        let tui = tokio::task::spawn(async move { tui.run(events_rx).await });
-        let dispatcher = tokio::task::spawn(async move { self.run_dispatcher(events_tx).await });
-
-        let (tui, dispatcher) = tokio::join!(tui, dispatcher);
-        tui??;
-        dispatcher??;
+        let cfg_clone_backend: Arc<VersesConfig> = self.config.clone();
+        tokio::task::spawn(async move { self.run_dispatcher(events_tx).await });
+        tui.run(events_rx, cfg_clone_backend).await?;
 
         Ok(())
     }
@@ -138,9 +142,7 @@ impl Verses {
     async fn fetch_lyrics(&self, track_id: &str) -> anyhow::Result<Option<Lyrics>> {
         let resp = self
             .client
-            .get(format!(
-                "https://api.lyricstify.vercel.app/v1/lyrics/{track_id}"
-            ))
+            .get(format!("{}{track_id}", self.config.api.lyricstify_api_url))
             .send()
             .await?;
         if resp.status() == StatusCode::NOT_FOUND {
@@ -166,12 +168,7 @@ impl Verses {
 fn extract_track_meta(track: FullTrack, artist: FullArtist) -> TrackMetadata {
     TrackMetadata {
         track_name: track.name,
-        track_author: track
-            .artists
-            .into_iter()
-            .map(|each| each.name)
-            .collect::<Vec<String>>()
-            .join(", "),
+        track_artists: track.artists.into_iter().map(|each| each.name).collect(),
         track_album: track.album.name,
         track_duration: track.duration.to_std().unwrap(),
         artist_genres: artist.genres,
@@ -199,7 +196,7 @@ pub struct LyricLine {
     pub words: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
+#[derive(Debug, Clone, Deserialize, Default, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LyricSyncType {
     #[default]
