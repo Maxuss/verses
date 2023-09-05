@@ -1,4 +1,4 @@
-use std::{borrow::Cow, io::Stdout, sync::Arc, time::Duration, vec};
+use std::{io::Stdout, sync::Arc, time::Duration, vec};
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -294,6 +294,7 @@ fn restore_terminal(terminal: &mut Term) -> anyhow::Result<()> {
 
 fn maybe_romanize_str(name: &str, language: &str, cfg: &Arc<VersesConfig>) -> String {
     if cfg.general.romanize_unicode
+        && cfg.general.romanize_track_names
         && language != "en"
         && !cfg.general.romanize_exclude.contains(&language.to_owned())
     {

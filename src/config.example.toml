@@ -19,7 +19,9 @@ romanize_unicode = true
 # be explicitly excluded from romanization
 # e.g. `de`, `fr`, `it`, etc.
 romanize_exclude = ["de"]
-# Changes the scrolling offset for lyrics
+# Set to `true` to additionally romanize track names
+romanize_track_names = false
+# Changes the scrolling offset for lyrics, when a new line is reached
 # Counted from top
 scroll_offset = 4
 
