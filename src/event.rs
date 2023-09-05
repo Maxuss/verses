@@ -14,6 +14,9 @@ pub enum StatusEvent {
     SwitchLyricLine {
         new_line: isize,
     },
+    TrackProgress {
+        new_progress_ms: u32,
+    },
 }
 
 #[derive(Default, Debug, Clone)]

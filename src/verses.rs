@@ -67,7 +67,14 @@ impl Verses {
                             .unwrap_or(Duration::ZERO);
                         let progress_ms = progress.as_millis() as u32;
 
-                        // finding floor index
+                        // sending new progress
+                        events_tx
+                            .send_async(StatusEvent::TrackProgress {
+                                new_progress_ms: progress_ms,
+                            })
+                            .await?;
+
+                        // finding floor line index
                         let lyrics_line_index: isize = lyrics.lines.len() as isize
                             - 1
                             - lyrics
@@ -92,6 +99,11 @@ impl Verses {
                     cached_id = id.clone();
                     current_lyrics_line = -1; // resetting lyrics in case song was switched
                 }
+
+                // setting track progress to 0 since we are listening to a new track
+                events_tx
+                    .send_async(StatusEvent::TrackProgress { new_progress_ms: 0 })
+                    .await?;
 
                 let track = self.spotify.track(TrackId::from_id(&id)?, None).await?;
                 let metadata = extract_track_meta(track);

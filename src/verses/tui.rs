@@ -1,18 +1,26 @@
-use std::sync::Arc;
-
-use rspotify::sync::Mutex;
-
-use crate::{
-    event::{StatusEvent, TrackMetadata},
-    verses::LyricLine,
+use std::{
+    io::Stdout,
+    sync::{Arc, Mutex},
+    time::Duration,
 };
 
+use crossterm::{
+    event::{self, Event, KeyCode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use ratatui::{prelude::CrosstermBackend, widgets::Paragraph, Terminal};
+
+use crate::event::{StatusEvent, TrackMetadata};
+
 use super::Lyrics;
+
+type Term = Terminal<CrosstermBackend<Stdout>>;
 
 #[derive(Debug, Clone, Default)]
 struct LyricsTracker {
     lyrics: Lyrics,
     current_line: isize,
+    current_progress_ms: u32,
     track_data: TrackMetadata,
 }
 
@@ -48,40 +56,27 @@ impl VersesTui {
                     metadata,
                     new_lyrics,
                 } => {
-                    let mut tracker = tracker.lock().await.unwrap();
+                    let mut tracker = tracker.lock().unwrap();
                     tracker.current_line = -1;
                     tracker.lyrics = new_lyrics;
                     tracker.track_data = metadata;
                 }
                 StatusEvent::SwitchLyricLine { new_line } => {
-                    let mut tracker = tracker.lock().await.unwrap();
+                    let mut tracker = tracker.lock().unwrap();
                     if new_line == -1 {
                         continue;
                     }
                     tracker.current_line = new_line as isize;
-
-                    // TODO: debug, remove me
-                    println!(
-                        "{}",
-                        tracker
-                            .lyrics
-                            .lines
-                            .get(tracker.current_line as usize)
-                            .unwrap_or(&LyricLine {
-                                start_time_ms: 0,
-                                words: String::new()
-                            })
-                            .words
-                    )
                 }
                 StatusEvent::NewTrackNoLyrics { metadata } => {
-                    let mut tracker = tracker.lock().await.unwrap();
+                    let mut tracker = tracker.lock().unwrap();
                     tracker.current_line = -1;
                     tracker.lyrics.lines.clear();
                     tracker.track_data = metadata;
-
-                    // TODO: debug, remove me
-                    println!("NO LYRICS")
+                }
+                StatusEvent::TrackProgress { new_progress_ms } => {
+                    let mut tracker = tracker.lock().unwrap();
+                    tracker.current_progress_ms = new_progress_ms;
                 }
             }
         }
@@ -89,7 +84,48 @@ impl VersesTui {
     }
 
     async fn run_tui(&self) -> anyhow::Result<()> {
-        // TODO:
-        Ok(())
+        let mut terminal = setup_terminal()?;
+
+        self.tui_loop(&mut terminal).await?;
+
+        restore_terminal(&mut terminal)
     }
+
+    async fn tui_loop(&self, terminal: &mut Term) -> anyhow::Result<()> {
+        let tracker = self.tracker.clone();
+        Ok(loop {
+            terminal.draw(|frame| {
+                let tracker = tracker.lock().unwrap();
+
+                let line = tracker
+                    .lyrics
+                    .lines
+                    .get(tracker.current_line as usize)
+                    .map(|it| it.words.clone())
+                    .unwrap_or("No lyrics :(".to_owned());
+                let greeting = Paragraph::new(line);
+                frame.render_widget(greeting, frame.size());
+            })?;
+            if event::poll(Duration::from_millis(250))? {
+                if let Event::Key(key) = event::read()? {
+                    if KeyCode::Char('q') == key.code {
+                        break;
+                    }
+                }
+            }
+        })
+    }
+}
+
+fn setup_terminal() -> anyhow::Result<Term> {
+    let mut stdout = std::io::stdout();
+    enable_raw_mode()?;
+    crossterm::execute!(stdout, EnterAlternateScreen,)?;
+    Ok(Terminal::new(CrosstermBackend::new(stdout))?)
+}
+
+fn restore_terminal(terminal: &mut Term) -> anyhow::Result<()> {
+    disable_raw_mode()?;
+    crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
+    terminal.show_cursor().map_err(anyhow::Error::from)
 }
