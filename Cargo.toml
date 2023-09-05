@@ -9,6 +9,7 @@ edition = "2021"
 anyhow = "1.0.75"
 async-trait = "0.1.73"
 crossterm = "0.27.0"
+deunicode = "1.3.3"
 flume = "0.11.0"
 home = "0.5.5"
 ratatui = { version = "0.23.0", features = ["all-widgets"] }
@@ -16,4 +17,5 @@ reqwest = { version = "0.11.20", features = ["rustls"] }
 rspotify = { version = "0.12.0", features = ["reqwest-rustls-tls"] }
 serde = { version = "1.0.188", features = ["derive"] }
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread", "fs"] }
+toml = "0.7.6"
 webbrowser = "0.8.11"

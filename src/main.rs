@@ -1,8 +1,14 @@
+pub mod config;
 pub mod event;
 mod oauth;
 pub mod verses;
 
+use std::io::{stdin, stdout, BufRead, Write};
+
+use config::VersesConfig;
+
 use rspotify::{prelude::*, scopes, AuthCodePkceSpotify, Config, Credentials, OAuth};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use verses::Verses;
 
 use crate::oauth::server_oneshot;
@@ -15,12 +21,54 @@ async fn prepare_dirs() -> anyhow::Result<()> {
     Ok(())
 }
 
+const EXAMPLE_CONFIG: &'static str = include_str!("./config.example.toml");
+
+async fn parse_config() -> anyhow::Result<VersesConfig> {
+    let config_dir = home::home_dir()
+        .unwrap()
+        .join(".config")
+        .join("verses")
+        .join("config.toml");
+    if !config_dir.exists() {
+        println!("Looks like it's your first time launching Verses!");
+        println!("To setup, enter your spotify app client id here.");
+        println!("You can create a new app here: https://developer.spotify.com/dashboard/create");
+        println!(
+            "[IMPORTANT] Make sure to set Redirect URI to \"http://localhost:8888/callback\"!"
+        );
+        print!("Enter client ID (not client secret!) here: ");
+        stdout().lock().flush()?;
+
+        let mut stdin = stdin().lock();
+        let mut buf = String::new();
+        stdin.read_line(&mut buf)?;
+        let buf = &buf[..buf.len() - 1]; // exclude newline
+
+        println!("Saving default configuration...");
+        let new_config = EXAMPLE_CONFIG.replace("{{SPOTIFY_CLIENT_ID}}", &buf);
+
+        let mut file = tokio::fs::File::create(&config_dir).await?;
+        file.write_all(new_config.as_bytes()).await?;
+        drop(file);
+        println!("Your config has been saved to {config_dir:?}!")
+    }
+
+    let mut file = tokio::fs::File::open(&config_dir).await?;
+    let mut buf = String::new();
+    file.read_to_string(&mut buf).await?;
+
+    VersesConfig::read_from_str(&buf).await
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Create necessary directories first
     prepare_dirs().await?;
 
-    let creds = Credentials::new_pkce("b165ecf5a7f24fd095d55e366a93c8ae");
+    // Parsing config
+    let config = parse_config().await?;
+
+    let creds = Credentials::new_pkce(&config.api.spotify_client_id);
     let oauth = OAuth {
         redirect_uri: "http://localhost:8888/callback".to_string(),
         scopes: scopes!("user-read-playback-state"),

@@ -68,19 +68,25 @@ fn handle_ui(tracker: &SyncTracker, f: &mut Frame<CrosstermBackend<Stdout>>) {
 
     // Lyrics
     let current_line = tracker.current_line as usize;
-    let text = tracker
-        .lyrics
-        .lines
-        .iter()
-        .enumerate()
-        .map(|(idx, each)| {
-            if idx == current_line {
-                Line::from(each.words.fg(Color::LightGreen))
-            } else {
-                Line::from(each.words.fg(Color::Gray))
-            }
-        })
-        .collect::<Vec<_>>();
+    let text = if tracker.lyrics.lines.is_empty() {
+        vec![Line::from(
+            "This song does not have synchronized lyrics :(".fg(Color::Gray),
+        )]
+    } else {
+        tracker
+            .lyrics
+            .lines
+            .iter()
+            .enumerate()
+            .map(|(idx, each)| {
+                if idx == current_line {
+                    Line::from(each.words.fg(Color::LightGreen))
+                } else {
+                    Line::from(each.words.fg(Color::Gray))
+                }
+            })
+            .collect::<Vec<_>>()
+    };
 
     let lyrics_part = Paragraph::new(text)
         .style(Style::default())
@@ -98,13 +104,13 @@ fn handle_ui(tracker: &SyncTracker, f: &mut Frame<CrosstermBackend<Stdout>>) {
         .title_alignment(Alignment::Right);
 
     let info_part = Paragraph::new(vec![
-        Line::from(format!("Author: {}", tracker.track_data.track_author)),
-        Line::from(format!("Album: {}", tracker.track_data.track_album)),
+        Line::from(format!("• Artist: {}", tracker.track_data.track_author)),
+        Line::from(format!("• Album: {}", tracker.track_data.track_album)),
         Line::from(format!(
-            "Genres: {}",
+            "• Genres: {}",
             tracker.track_data.artist_genres.join(", ")
         )),
-        Line::from(format!("Popularity: {}%", tracker.track_data.popularity)),
+        Line::from(format!("• Popularity: {}%", tracker.track_data.popularity)),
     ])
     .style(Style::default().gray())
     .alignment(Alignment::Left)

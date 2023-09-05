@@ -1,0 +1,84 @@
+# This is the main configuration file for Verses
+
+# This section controls the API handling for verses
+[api]
+# This is the client ID of your spotify app. It is used
+# to fetch current playback status as well as track/artist data
+# Find your applications at https://developer.spotify.com/dashboard
+spotify_client_id = "{{SPOTIFY_CLIENT_ID}}"
+
+# This is optional, you can set it to your self-hosted Lyricstify
+# instance. Uses the official vercel deployment by default. 
+lyricstify_api_url = "https://api.lyricstify.vercel.app/v1/lyrics/"
+
+# This section contains main configuration
+[general]
+# Set to `true` to romanize unicode symbols (japanese, korean, cyrillic, etc.)
+romanize_unicode = true
+# Changes the scrolling offset for lyrics
+# Counted from top
+scroll_offset = 4
+
+# This section configures information displaying
+# In the about section
+[general.display]
+# Whether to show track name
+show_name = false
+# How to format track name.
+# Available templates: `name`
+name_format = "• Name: {{ name }}"
+
+# Whether to show track artists
+show_artists = true
+# How to format track artists
+# Available templates: `artists`
+artists_format = "• Artists: {{ artists }}"
+
+# Whether to show track album
+show_album = true
+# How to format track album
+# Available templates: `album`
+album_format = "• Album: {{ artists }}"
+
+# Whether to show track genres
+show_genres = true
+# How to format track genres
+# Available templates: `genres`
+genres_format = "• Genres: {{ genres }}"
+
+# Whether to show spotify track popularity
+show_popularity = true
+# How to format track popularity
+# Available templates: `popularity`
+popularity_format = "• Popularity: {{ popularity }}%"
+
+# Controls the lyrics display 
+[theme.lyrics]
+# Color of the normal lyric text
+inactive_text_color = "gray"
+# Color of the current lyric text
+active_text_color = "light green"
+
+# Controls the borders display
+[theme.borders]
+# Color of the lyrics box border
+lyrics_border_color = "dark gray"
+# Color of the lyrics box text (current track name)
+lyrics_border_text_color = "dark gray"
+# Style of the lyrics box border
+lyrics_border_style = "Rounded"
+
+# Color of the about box border
+info_border_color = "dark gray"
+# Color of the about box text
+info_border_text_color = "dark gray"
+# Style of about box border
+info_border_style = "Plain"
+
+# Controls the progress bar display
+[theme.progress_bar]
+# Color of the progress bar
+color = "light blue"
+# Whether to show track progress in percentage
+# rather than <current progress>/<total duration>
+is_percentage = false
