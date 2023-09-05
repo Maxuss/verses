@@ -17,7 +17,7 @@ pub struct VersesConfig {
 impl VersesConfig {
     pub async fn read_from_str(str: &str) -> anyhow::Result<Self> {
         let unresolved = toml::from_str::<VersesConfigUnresolved>(str)?;
-        let theme = unresolved.theme;
+        let theme = unresolved.theme.resolve().await?;
         let api = unresolved.api.resolve().await?;
         let general = unresolved.general.resolve().await?;
         Ok(Self {
@@ -161,7 +161,7 @@ impl<'v> Visitor<'v> for BorderVisitor {
 struct VersesConfigUnresolved {
     general: MaybeLink<GeneralConfiguration>,
     api: MaybeLink<ApiConfiguration>,
-    theme: ThemeConfiguration,
+    theme: MaybeLink<ThemeConfiguration>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
