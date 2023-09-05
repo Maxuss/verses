@@ -1,4 +1,5 @@
-pub mod tui;
+pub mod handler;
+pub mod tui_backend;
 
 use std::time::Duration;
 
@@ -12,8 +13,10 @@ use serde::Deserialize;
 
 use crate::{
     event::{StatusEvent, TrackMetadata},
-    verses::tui::VersesTui,
+    verses::handler::VersesHandler,
 };
+
+use self::tui_backend::TerminalUiBackend;
 
 #[derive(Debug, Clone)]
 pub struct Verses {
@@ -30,7 +33,7 @@ impl Verses {
     pub async fn run(self) -> anyhow::Result<()> {
         let (events_tx, events_rx) = flume::bounded::<StatusEvent>(4);
 
-        let tui = VersesTui::new();
+        let tui = VersesHandler::new(TerminalUiBackend);
 
         let tui = tokio::task::spawn(async move { tui.run(events_rx).await });
         let dispatcher = tokio::task::spawn(async move { self.run_dispatcher(events_tx).await });
