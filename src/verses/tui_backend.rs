@@ -1,9 +1,10 @@
-use std::{io::Stdout, sync::Arc, time::Duration};
+use std::{borrow::Cow, io::Stdout, sync::Arc, time::Duration, vec};
 
 use crossterm::{
     event::{self, Event, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use deunicode::{deunicode, deunicode_with_tofu_cow};
 use handlebars::{handlebars_helper, Handlebars};
 use ratatui::{
     prelude::*,
@@ -109,19 +110,57 @@ impl<'a> TerminalUiBackend<'a> {
                     .0),
             )]
         } else {
-            tracker
-                .lyrics
-                .lines
-                .iter()
-                .enumerate()
-                .map(|(idx, each)| {
-                    if idx == current_line {
-                        Line::from(each.words.fg(cfg.theme.lyrics.active_text_color.0))
-                    } else {
-                        Line::from(each.words.fg(cfg.theme.lyrics.inactive_text_color.0))
-                    }
-                })
-                .collect::<Vec<_>>()
+            let lines = if tracker.lyrics.language != "en"
+                && cfg.general.romanize_unicode
+                && !cfg
+                    .general
+                    .romanize_exclude
+                    .contains(&tracker.lyrics.language)
+            {
+                // attempting to romanize non-english lines
+                tracker
+                    .lyrics
+                    .lines
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, each)| {
+                        let romanized = deunicode_with_tofu_cow(&each.words, "[?]");
+                        let fg_color = if idx == current_line {
+                            cfg.theme.lyrics.active_text_color.0
+                        } else {
+                            cfg.theme.lyrics.inactive_text_color.0
+                        };
+                        if romanized == each.words {
+                            // in some cases, romanization is not needed
+                            vec![Line::from(each.words.fg(fg_color))]
+                        } else {
+                            vec![
+                                Line::from(each.words.fg(fg_color)),
+                                Line::from(Span {
+                                    content: romanized,
+                                    style: Style::default().fg(fg_color),
+                                }),
+                            ]
+                        }
+                    })
+                    .flatten()
+                    .collect::<Vec<_>>()
+            } else {
+                tracker
+                    .lyrics
+                    .lines
+                    .iter()
+                    .enumerate()
+                    .map(|(idx, each)| {
+                        if idx == current_line {
+                            Line::from(each.words.fg(cfg.theme.lyrics.active_text_color.0))
+                        } else {
+                            Line::from(each.words.fg(cfg.theme.lyrics.inactive_text_color.0))
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            };
+            lines
         };
 
         let lyrics_part = Paragraph::new(text)

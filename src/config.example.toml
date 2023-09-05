@@ -15,6 +15,10 @@ lyricstify_api_url = "https://api.lyricstify.vercel.app/v1/lyrics/"
 [general]
 # Set to `true` to romanize unicode symbols (japanese, korean, cyrillic, etc.)
 romanize_unicode = true
+# Here you can specify languages which should
+# be explicitly excluded from romanization
+# e.g. `de`, `fr`, `it`, etc.
+romanize_exclude = ["de"]
 # Changes the scrolling offset for lyrics
 # Counted from top
 scroll_offset = 4

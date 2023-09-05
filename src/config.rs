@@ -66,6 +66,7 @@ pub struct ApiConfiguration {
 #[derive(Debug, Clone, Deserialize)]
 pub struct GeneralConfiguration {
     pub romanize_unicode: bool,
+    pub romanize_exclude: Vec<String>,
     pub scroll_offset: u32,
     pub display: DisplayConfig,
 }

@@ -69,13 +69,8 @@ impl<T: VersesBackend + Send + Sync + 'static> VersesHandler<T> {
     ) -> anyhow::Result<()> {
         let tracker_w = self.tracker.clone();
         let tracker_r = self.tracker;
-        let event_handler =
-            tokio::task::spawn(async move { Self::run_event_handler(tracker_w, event_rx).await });
-        let backend_handler =
-            tokio::task::spawn(async move { self.backend.run_backend(tracker_r, config).await });
-        let (events, backend) = tokio::join!(event_handler, backend_handler);
-        events??;
-        backend??;
+        tokio::task::spawn(async move { Self::run_event_handler(tracker_w, event_rx).await });
+        self.backend.run_backend(tracker_r, config).await?;
         Ok(())
     }
 
