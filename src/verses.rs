@@ -196,7 +196,7 @@ pub struct LyricLine {
     pub words: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Default, Copy)]
+#[derive(Debug, Clone, Deserialize, Default, Copy, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LyricSyncType {
     #[default]

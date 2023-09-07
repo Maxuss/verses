@@ -17,7 +17,10 @@ use regex::Regex;
 
 use crate::config::VersesConfig;
 
-use super::handler::{SyncTracker, VersesBackend};
+use super::{
+    handler::{SyncTracker, VersesBackend},
+    LyricSyncType,
+};
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
 
@@ -150,7 +153,9 @@ impl<'a> TerminalUiBackend<'a> {
                             .to_owned(),
                         );
 
-                        let fg_color = if idx == current_line {
+                        let fg_color = if idx == current_line
+                            && tracker.lyrics.sync_type != LyricSyncType::Unsynced
+                        {
                             cfg.theme.lyrics.active_text_color.0
                         } else {
                             cfg.theme.lyrics.inactive_text_color.0
@@ -176,7 +181,9 @@ impl<'a> TerminalUiBackend<'a> {
                     .iter()
                     .enumerate()
                     .map(|(idx, each)| {
-                        if idx == current_line {
+                        if idx == current_line
+                            && tracker.lyrics.sync_type != LyricSyncType::Unsynced
+                        {
                             Line::from(each.words.fg(cfg.theme.lyrics.active_text_color.0))
                         } else {
                             Line::from(each.words.fg(cfg.theme.lyrics.inactive_text_color.0))
