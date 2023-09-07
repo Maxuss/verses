@@ -1,10 +1,10 @@
-use std::{io::Stdout, sync::Arc, time::Duration, vec};
+use std::{borrow::Cow, cell::OnceCell, io::Stdout, sync::Arc, time::Duration, vec};
 
 use crossterm::{
     event::{self, Event, KeyCode},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use deunicode::{deunicode, deunicode_with_tofu_cow};
+use deunicode::{deunicode, deunicode_with_tofu};
 use handlebars::{handlebars_helper, Handlebars};
 use ratatui::{
     prelude::*,
@@ -12,12 +12,15 @@ use ratatui::{
     widgets::{Block, Borders, Gauge, Paragraph, Wrap},
     Frame, Terminal,
 };
+use regex::Regex;
 
 use crate::config::VersesConfig;
 
 use super::handler::{SyncTracker, VersesBackend};
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
+
+const UNEXPECTED_CAMEL_CASE_REGEX: OnceCell<Regex> = OnceCell::new();
 
 #[derive(Debug, Clone)]
 pub struct TerminalUiBackend<'a> {
@@ -72,6 +75,9 @@ impl<'a> TerminalUiBackend<'a> {
         f: &mut Frame<CrosstermBackend<Stdout>>,
         cfg: &Arc<VersesConfig>,
     ) {
+        let re = UNEXPECTED_CAMEL_CASE_REGEX;
+        let re = re.get_or_init(|| Regex::new("[a-z][A-Z]").unwrap());
+
         let size = f.size();
 
         let tracker = tracker.lock().unwrap();
@@ -126,7 +132,19 @@ impl<'a> TerminalUiBackend<'a> {
                     .iter()
                     .enumerate()
                     .map(|(idx, each)| {
-                        let romanized = deunicode_with_tofu_cow(&each.words, "[?]");
+                        let romanized = deunicode_with_tofu(&each.words, "[?]");
+                        let other = romanized.clone();
+                        let replace = Cow::Owned(
+                            (*re.replace_all(&other, |captures: &regex::Captures| {
+                                captures
+                                    .iter()
+                                    .filter(Option::is_some)
+                                    .map(|it| it.unwrap().as_str().to_lowercase())
+                                    .collect::<String>()
+                            }))
+                            .to_owned(),
+                        );
+
                         let fg_color = if idx == current_line {
                             cfg.theme.lyrics.active_text_color.0
                         } else {
@@ -139,7 +157,7 @@ impl<'a> TerminalUiBackend<'a> {
                             vec![
                                 Line::from(each.words.fg(fg_color)),
                                 Line::from(Span {
-                                    content: romanized,
+                                    content: replace,
                                     style: Style::default().fg(fg_color),
                                 }),
                             ]
