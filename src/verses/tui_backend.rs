@@ -165,14 +165,16 @@ impl<'a> TerminalUiBackend<'a> {
             lines
         };
 
+        let max_y_height = horizontal_layout[0].height as i16;
+        let y_offset = cfg.general.scroll_offset as i16;
+        let scroll_y = (current_line as i16 - y_offset)
+            .clamp(0, (text.len() as i16 - max_y_height).max(0)) as u16;
+
         let lyrics_part = Paragraph::new(text)
             .style(Style::default())
             .alignment(Alignment::Center)
             .wrap(Wrap { trim: false })
-            .scroll((
-                (current_line as i16 - cfg.general.scroll_offset as i16).max(0) as u16,
-                0,
-            ))
+            .scroll((scroll_y, 0))
             .block(lyrics_block);
         f.render_widget(lyrics_part, horizontal_layout[0]);
 
@@ -272,6 +274,8 @@ impl<'a> TerminalUiBackend<'a> {
         f.render_widget(track_progress, vertical_layout[1])
     }
 }
+
+#[inline]
 fn fmt_duration(duration_ms: u32) -> String {
     let mut seconds = duration_ms / 1000;
     let minutes = seconds / 60;
@@ -279,6 +283,7 @@ fn fmt_duration(duration_ms: u32) -> String {
     format!("{minutes:0>2}:{seconds:0>2}")
 }
 
+#[inline]
 fn setup_terminal() -> anyhow::Result<Term> {
     let mut stdout = std::io::stdout();
     enable_raw_mode()?;
@@ -286,12 +291,14 @@ fn setup_terminal() -> anyhow::Result<Term> {
     Ok(Terminal::new(CrosstermBackend::new(stdout))?)
 }
 
+#[inline]
 fn restore_terminal(terminal: &mut Term) -> anyhow::Result<()> {
     disable_raw_mode()?;
     crossterm::execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
     terminal.show_cursor().map_err(anyhow::Error::from)
 }
 
+#[inline]
 fn maybe_romanize_str(name: &str, language: &str, cfg: &Arc<VersesConfig>) -> String {
     if cfg.general.romanize_unicode
         && cfg.general.romanize_track_names
