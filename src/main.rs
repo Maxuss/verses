@@ -24,7 +24,7 @@ async fn prepare_dirs() -> anyhow::Result<()> {
     Ok(())
 }
 
-const EXAMPLE_CONFIG: &'static str = include_str!("./config.example.toml");
+const EXAMPLE_CONFIG: &str = include_str!("./config.example.toml");
 
 async fn parse_config() -> anyhow::Result<VersesConfig> {
     let config_dir = home::home_dir()
@@ -48,7 +48,7 @@ async fn parse_config() -> anyhow::Result<VersesConfig> {
         let buf = &buf[..buf.len() - 1]; // exclude newline
 
         println!("Saving default configuration...");
-        let new_config = EXAMPLE_CONFIG.replace("{{SPOTIFY_CLIENT_ID}}", &buf);
+        let new_config = EXAMPLE_CONFIG.replace("{{SPOTIFY_CLIENT_ID}}", buf);
 
         let mut file = tokio::fs::File::create(&config_dir).await?;
         file.write_all(new_config.as_bytes()).await?;

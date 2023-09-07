@@ -1870,6 +1870,7 @@ dependencies = [
  "flume",
  "handlebars",
  "home",
+ "lazy_static",
  "ratatui",
  "regex",
  "reqwest",

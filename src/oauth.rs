@@ -40,5 +40,5 @@ Success! You may now close this window."#,
     let data = &String::from_utf8(necessary_info.to_vec())?[19..];
     let code = &data[..276];
     let oauth_state = &data[283..];
-    return Ok((code.to_owned(), oauth_state.to_owned()));
+    Ok((code.to_owned(), oauth_state.to_owned()))
 }

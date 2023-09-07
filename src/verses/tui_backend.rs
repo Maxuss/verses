@@ -1,4 +1,4 @@
-use std::{borrow::Cow, cell::OnceCell, io::Stdout, sync::Arc, time::Duration, vec};
+use std::{borrow::Cow, io::Stdout, sync::Arc, time::Duration, vec};
 
 use crossterm::{
     event::{self, Event, KeyCode},
@@ -6,6 +6,7 @@ use crossterm::{
 };
 use deunicode::{deunicode, deunicode_with_tofu};
 use handlebars::{handlebars_helper, Handlebars};
+use lazy_static::lazy_static;
 use ratatui::{
     prelude::*,
     style::Stylize,
@@ -20,7 +21,9 @@ use super::handler::{SyncTracker, VersesBackend};
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
 
-const UNEXPECTED_CAMEL_CASE_REGEX: OnceCell<Regex> = OnceCell::new();
+lazy_static! {
+    static ref UNEPXECTED_CAMEL_CASE_REGEX: Regex = Regex::new("[a-z][A-Z]").unwrap();
+}
 
 #[derive(Debug, Clone)]
 pub struct TerminalUiBackend<'a> {
@@ -43,30 +46,32 @@ impl<'a> VersesBackend for TerminalUiBackend<'a> {
     }
 }
 
-impl<'a> TerminalUiBackend<'a> {
-    pub fn new() -> Self {
+impl<'a> Default for TerminalUiBackend<'a> {
+    fn default() -> Self {
         Self {
             cached_info_vec: Vec::with_capacity(4),
             old_tracker_hash: 0,
         }
     }
+}
 
+impl<'a> TerminalUiBackend<'a> {
     async fn tui_loop(
         &mut self,
         tracker: SyncTracker,
         terminal: &mut Term,
         cfg: Arc<VersesConfig>,
     ) -> anyhow::Result<()> {
-        Ok(loop {
+        loop {
             terminal.draw(|frame| self.handle_ui(&tracker, frame, &cfg))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
                     if KeyCode::Char('q') == key.code {
-                        break;
+                        break Ok(());
                     }
                 }
             }
-        })
+        }
     }
 
     fn handle_ui(
@@ -75,9 +80,6 @@ impl<'a> TerminalUiBackend<'a> {
         f: &mut Frame<CrosstermBackend<Stdout>>,
         cfg: &Arc<VersesConfig>,
     ) {
-        let re = UNEXPECTED_CAMEL_CASE_REGEX;
-        let re = re.get_or_init(|| Regex::new("[a-z][A-Z]").unwrap());
-
         let size = f.size();
 
         let tracker = tracker.lock().unwrap();
@@ -85,7 +87,7 @@ impl<'a> TerminalUiBackend<'a> {
         let lyrics_top_text = maybe_romanize_str(
             &tracker.track_data.track_name,
             &tracker.lyrics.language,
-            &cfg,
+            cfg,
         );
         let lyrics_block = Block::default()
             .fg(cfg.theme.borders.lyrics_border_color.0)
@@ -131,17 +133,20 @@ impl<'a> TerminalUiBackend<'a> {
                     .lines
                     .iter()
                     .enumerate()
-                    .map(|(idx, each)| {
+                    .flat_map(|(idx, each)| {
                         let romanized = deunicode_with_tofu(&each.words, "[?]");
                         let other = romanized.clone();
                         let replace = Cow::Owned(
-                            (*re.replace_all(&other, |captures: &regex::Captures| {
-                                captures
-                                    .iter()
-                                    .filter(Option::is_some)
-                                    .map(|it| it.unwrap().as_str().to_lowercase())
-                                    .collect::<String>()
-                            }))
+                            (*UNEPXECTED_CAMEL_CASE_REGEX.replace_all(
+                                &other,
+                                |captures: &regex::Captures| {
+                                    captures
+                                        .iter()
+                                        .filter(Option::is_some)
+                                        .map(|it| it.unwrap().as_str().to_lowercase())
+                                        .collect::<String>()
+                                },
+                            ))
                             .to_owned(),
                         );
 
@@ -163,7 +168,6 @@ impl<'a> TerminalUiBackend<'a> {
                             ]
                         }
                     })
-                    .flatten()
                     .collect::<Vec<_>>()
             } else {
                 tracker
@@ -325,11 +329,11 @@ fn maybe_romanize_str(name: &str, language: &str, cfg: &Arc<VersesConfig>) -> St
     {
         let romanized = deunicode(name);
         if romanized == name {
-            return romanized;
+            romanized
         } else {
-            return format!("{name} ({romanized})");
+            format!("{name} ({romanized})")
         }
     } else {
-        return name.to_owned();
+        name.to_owned()
     }
 }

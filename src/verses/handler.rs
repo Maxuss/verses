@@ -94,7 +94,7 @@ impl<T: VersesBackend + Send + Sync + 'static> VersesHandler<T> {
                     if new_line == -1 {
                         continue;
                     }
-                    tracker.current_line = new_line as isize;
+                    tracker.current_line = new_line;
                 }
                 StatusEvent::NewTrackNoLyrics { metadata } => {
                     let mut tracker = tracker.lock().unwrap();

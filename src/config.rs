@@ -112,13 +112,13 @@ impl<'v> Visitor<'v> for ColorVisitor {
     where
         E: serde::de::Error,
     {
-        if v.starts_with('#') {
-            let color_rgb = u32::from_str_radix(&v[1..], 16).map_err(|e| {
+        if let Some(stripped) = v.strip_prefix('#') {
+            let color_rgb = u32::from_str_radix(stripped, 16).map_err(|e| {
                 serde::de::Error::custom(format!("Invalid hex string for color {e}"))
             })?;
             let r = (color_rgb & 0xFF0000) >> 16;
             let g = (color_rgb & 0x00FF00) >> 8;
-            let b = (color_rgb * 0x0000FF) >> 0;
+            let b = color_rgb * 0x0000FF;
             Ok(ThemeColor(Color::Rgb(r as u8, g as u8, b as u8)))
         } else {
             v.parse::<Color>()

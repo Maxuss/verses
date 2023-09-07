@@ -40,7 +40,7 @@ impl Verses {
         let (events_tx, events_rx) = flume::bounded::<StatusEvent>(4);
 
         // TODO: other backend choices?
-        let tui = VersesHandler::new(TerminalUiBackend::new());
+        let tui = VersesHandler::new(TerminalUiBackend::default());
 
         let cfg_clone_backend: Arc<VersesConfig> = self.config.clone();
         tokio::task::spawn(async move { self.run_dispatcher(events_tx).await });
@@ -94,10 +94,10 @@ impl Verses {
                         if current_lyrics_line != lyrics_line_index {
                             events_tx
                                 .send_async(StatusEvent::SwitchLyricLine {
-                                    new_line: lyrics_line_index as isize,
+                                    new_line: lyrics_line_index,
                                 })
                                 .await?;
-                            current_lyrics_line = lyrics_line_index as isize;
+                            current_lyrics_line = lyrics_line_index;
                         }
                     }
                     tokio::time::sleep(Duration::from_secs(1)).await;
