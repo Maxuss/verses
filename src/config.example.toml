@@ -78,6 +78,8 @@ lyrics_border_style = "Rounded"
 info_border_color = "dark gray"
 # Color of the about box text
 info_border_text_color = "dark gray"
+# Color of the text `inside` the about box
+info_text_color = "gray"
 # Style of about box border
 info_border_style = "Plain"
 

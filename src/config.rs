@@ -48,6 +48,7 @@ pub struct ThemeBorders {
     pub lyrics_border_style: BorderStyle,
     pub info_border_color: ThemeColor,
     pub info_border_text_color: ThemeColor,
+    pub info_text_color: ThemeColor,
     pub info_border_style: BorderStyle,
 }
 

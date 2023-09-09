@@ -270,6 +270,10 @@ impl<'a> TerminalUiBackend<'a> {
                     .unwrap(),
                 ));
             };
+            let text_color = cfg.theme.borders.info_text_color.0;
+            info_vec
+                .iter_mut()
+                .for_each(|line| line.patch_style(Style::default().fg(text_color)));
             self.old_tracker_hash = tracker.identity_hash();
             self.cached_info_vec = info_vec.clone();
             info_vec
