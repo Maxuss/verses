@@ -8,6 +8,7 @@ use std::{
     sync::Arc,
 };
 
+use clap::Parser;
 use config::VersesConfig;
 
 use rspotify::{prelude::*, scopes, AuthCodePkceSpotify, Config, Credentials, OAuth};
@@ -25,6 +26,15 @@ async fn prepare_dirs() -> anyhow::Result<()> {
 }
 
 const EXAMPLE_CONFIG: &str = include_str!("./config.example.toml");
+
+/// A TUI spotify synchronized lyrics viewer
+#[derive(Parser)]
+#[command(about, author, version, long_about = None)]
+struct Args {
+    /// Whether to just validate the config and exit
+    #[arg(long, short)]
+    validate: bool,
+}
 
 async fn parse_config() -> anyhow::Result<VersesConfig> {
     let config_dir = home::home_dir()
@@ -68,8 +78,14 @@ async fn main() -> anyhow::Result<()> {
     // Create necessary directories first
     prepare_dirs().await?;
 
+    let args = Args::parse();
+
     // Parsing config
     let verses_config = Arc::new(parse_config().await?);
+    if args.validate {
+        println!("Config validated");
+        return Ok(());
+    }
 
     let creds = Credentials::new_pkce(&verses_config.api.spotify_client_id);
     let oauth = OAuth {
