@@ -2,7 +2,7 @@
 
 Verses is a TUI tool to view synchronized Spotify lyrics.
 
-TODO: add preview examples here
+![Preview GIF](./assets/showcase.gif)
 
 ## Installation
 
@@ -16,7 +16,7 @@ cargo install verses
 ```
 git clone https://github.com/Maxuss/verses
 cd verses
-cargo install
+cargo install --path .
 ```
 
 TODO: aur package?
