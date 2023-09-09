@@ -8,6 +8,7 @@ keywords = ["Spotify", "lyrics", "TUI"]
 authors = ["Maxuss <maxus.info.mail@proton.me>"]
 description = "TUI for viewing synchronized Spotify lyrics"
 repository = "https://github.com/Maxuss/chatgpt_rs"
+homepage = "https://github.com/Maxuss/chatgpt_rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

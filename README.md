@@ -6,6 +6,13 @@ Verses is a TUI tool to view synchronized Spotify lyrics.
 
 ## Installation
 
+### AUR (for Arch users)
+Verses is available on AUR under `verses-bin`
+
+```
+yay -S verses-bin
+```
+
 ### With cargo:
 ```sh
 cargo install verses
@@ -18,8 +25,6 @@ git clone https://github.com/Maxuss/verses
 cd verses
 cargo install --path .
 ```
-
-TODO: aur package?
 
 ## Prerequesities
 
