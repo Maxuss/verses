@@ -32,6 +32,9 @@ lazy_static! {
 pub struct TerminalUiBackend<'a> {
     cached_info_vec: Vec<Line<'a>>,
     old_tracker_hash: u64,
+
+    autoscroll_enabled: bool,
+    scroll_amount: u16,
 }
 
 #[async_trait::async_trait]
@@ -54,6 +57,8 @@ impl<'a> Default for TerminalUiBackend<'a> {
         Self {
             cached_info_vec: Vec::with_capacity(4),
             old_tracker_hash: 0,
+            autoscroll_enabled: true,
+            scroll_amount: 0,
         }
     }
 }
@@ -69,8 +74,21 @@ impl<'a> TerminalUiBackend<'a> {
             terminal.draw(|frame| self.handle_ui(&tracker, frame, &cfg))?;
             if event::poll(Duration::from_millis(250))? {
                 if let Event::Key(key) = event::read()? {
-                    if KeyCode::Char('q') == key.code {
-                        break Ok(());
+                    match key.code {
+                        KeyCode::Char('q') => break Ok(()),
+                        KeyCode::Char('a') => {
+                            self.autoscroll_enabled = !self.autoscroll_enabled;
+                        }
+                        KeyCode::Char('j') | KeyCode::Down => {
+                            self.scroll_amount = (self.scroll_amount as i16 - 1).max(0) as u16;
+                        }
+                        KeyCode::Char('k') | KeyCode::Up => {
+                            self.scroll_amount += 1;
+                        }
+                        KeyCode::Char('r') => {
+                            self.scroll_amount = 0;
+                        }
+                        _ => continue,
                     }
                 }
             }
@@ -194,10 +212,15 @@ impl<'a> TerminalUiBackend<'a> {
             lines
         };
 
-        let max_y_height = horizontal_layout[0].height as i16;
-        let y_offset = cfg.general.scroll_offset as i16;
-        let scroll_y = (current_line as i16 - y_offset)
-            .clamp(0, (text.len() as i16 - max_y_height).max(0)) as u16;
+        let scroll_y =
+            if self.autoscroll_enabled && tracker.lyrics.sync_type == LyricSyncType::LineSynced {
+                let max_y_height = horizontal_layout[0].height as i16;
+                let y_offset = cfg.general.scroll_offset as i16;
+                (current_line as i16 - y_offset).clamp(0, (text.len() as i16 - max_y_height).max(0))
+                    as u16
+            } else {
+                self.scroll_amount
+            };
 
         let lyrics_part = Paragraph::new(text)
             .style(Style::default())
