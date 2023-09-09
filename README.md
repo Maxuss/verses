@@ -9,7 +9,7 @@ Verses is a TUI tool to view synchronized Spotify lyrics.
 ### AUR (for Arch users)
 Verses is available on AUR under `verses-bin`
 
-```
+```sh
 yay -S verses-bin
 ```
 
@@ -20,7 +20,7 @@ cargo install verses
 
 ### From source:
 
-```
+```sh
 git clone https://github.com/Maxuss/verses
 cd verses
 cargo install --path .
