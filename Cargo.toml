@@ -1,7 +1,13 @@
 [package]
 name = "verses"
-version = "0.1.0"
+version = "0.9.0"
 edition = "2021"
+license = "Apache-2.0"
+categories = ["api-bindings", "command-line-utilities"]
+keywords = ["Spotify", "lyrics", "TUI"]
+authors = ["Maxuss <maxus.info.mail@proton.me>"]
+description = "TUI for viewing synchronized Spotify lyrics"
+repository = "https://github.com/Maxuss/chatgpt_rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
