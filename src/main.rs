@@ -112,7 +112,8 @@ async fn main() -> anyhow::Result<()> {
 
         match webbrowser::open(&url) {
             Ok(_) => {
-                println!("Opened a spotify authentication window in browser.")
+                println!("Opened a spotify authentication window in browser.");
+                println!("If a browser didn't open, use this URL: {url}")
             }
             Err(err) => {
                 eprintln!("Failed to open a web browser! {err}");
@@ -122,7 +123,7 @@ async fn main() -> anyhow::Result<()> {
 
         let (code, oauth_state) = server_oneshot().await?;
         if oauth.state != oauth_state {
-            println!("Failed to login! Something wrong with OAuth state?");
+            println!("Failed to login! Did you open an old auth URL?");
             return Ok(());
         }
         spotify.request_token(&code).await?;
