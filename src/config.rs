@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use home::home_dir;
 use ratatui::{style::Color, widgets::BorderType};
 use serde::{
     de::{DeserializeOwned, Visitor},
@@ -179,7 +180,8 @@ impl<V: DeserializeOwned> MaybeLink<V> {
         match self {
             MaybeLink::Explicit(value) => Ok(value),
             MaybeLink::Link { include } => {
-                let mut file = tokio::fs::File::open(include).await?;
+                let config_dir = home_dir().unwrap().join(".config").join("verses");
+                let mut file = tokio::fs::File::open(config_dir.join(include)).await?;
                 let mut str = String::new();
                 file.read_to_string(&mut str).await?;
                 toml::from_str(&str).map_err(anyhow::Error::from)

@@ -80,10 +80,10 @@ impl<'a> TerminalUiBackend<'a> {
                             self.autoscroll_enabled = !self.autoscroll_enabled;
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
-                            self.scroll_amount = (self.scroll_amount as i16 - 1).max(0) as u16;
+                            self.scroll_amount += 1;
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
-                            self.scroll_amount += 1;
+                            self.scroll_amount = (self.scroll_amount as i16 - 1).max(0) as u16;
                         }
                         KeyCode::Char('r') => {
                             self.scroll_amount = 0;
@@ -301,12 +301,59 @@ impl<'a> TerminalUiBackend<'a> {
             self.cached_info_vec = info_vec.clone();
             info_vec
         };
+
+        let right_side_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(80), Constraint::Percentage(20)].as_ref())
+            .split(horizontal_layout[1]);
+
         let info_part = Paragraph::new(info_vec)
             .style(Style::default())
             .alignment(Alignment::Left)
             .wrap(Wrap { trim: false })
             .block(info_block);
-        f.render_widget(info_part, horizontal_layout[1]);
+        f.render_widget(info_part, right_side_layout[0]);
+
+        let controls_block = Block::new()
+            .fg(cfg.theme.borders.info_border_color.0)
+            .title("Controls".fg(cfg.theme.borders.info_border_text_color.0))
+            .borders(Borders::ALL)
+            .border_type(cfg.theme.borders.info_border_style.0)
+            .title_alignment(Alignment::Left);
+        let autoscroll = format!(
+            "Autoscroll: {}",
+            if self.autoscroll_enabled {
+                "enabled"
+            } else {
+                "disabled"
+            }
+        );
+        let controls_part = Paragraph::new(vec![
+            Line::from(autoscroll.fg(cfg.theme.borders.info_text_color.0)),
+            Line::from(vec![
+                "q".bg(cfg.theme.borders.info_text_color.0),
+                "   - Quit".fg(cfg.theme.borders.info_text_color.0),
+            ]),
+            Line::from(vec![
+                "j".bg(cfg.theme.borders.info_text_color.0),
+                "/".fg(cfg.theme.borders.info_text_color.0),
+                "k".bg(cfg.theme.borders.info_text_color.0),
+                " - Scroll (down/up)".fg(cfg.theme.borders.info_text_color.0),
+            ]),
+            Line::from(vec![
+                "a".bg(cfg.theme.borders.info_text_color.0),
+                "   - Toggle autoscroll".fg(cfg.theme.borders.info_text_color.0),
+            ]),
+            Line::from(vec![
+                "r".bg(cfg.theme.borders.info_text_color.0),
+                "   - Reset scroll".fg(cfg.theme.borders.info_text_color.0),
+            ]),
+        ])
+        .style(Style::default())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: false })
+        .block(controls_block);
+        f.render_widget(controls_part, right_side_layout[1]);
 
         // Track progress
         let progress_percent = f32::ceil(
